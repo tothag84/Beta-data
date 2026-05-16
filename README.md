@@ -17,8 +17,11 @@ src/
 │   └── supabase.ts         # service-role Supabase client
 ├── pipeline/
 │   ├── fetchTrends.ts      # daily cron entrypoint (Steps A → D)
-│   ├── mockSources.ts      # Step A — simulated raw signal streams
-│   └── optimizeCuration.ts # feedback-loop summary builder
+│   ├── optimizeCuration.ts # feedback-loop summary builder
+│   └── sources/            # Step A — one module per ingest source
+│       ├── github.ts       #   real: GitHub Search API (new repos by stars)
+│       ├── mock.ts         #   stubbed: Reddit / Discord / Google Trends
+│       └── index.ts        #   fan-out, allSettled, returns RawSignal[]
 └── types/
     └── index.ts
 supabase/
@@ -123,8 +126,9 @@ jobs:
 
 ## 7. Extending
 
-- **Real ingest** — replace `src/pipeline/mockSources.ts` with actual
-  scrapers / API calls. The rest of the pipeline does not need to change.
+- **Real ingest** — `src/pipeline/sources/github.ts` already calls the real
+  GitHub Search API. Add more sources as sibling files and register them in
+  `sources/index.ts`; a failing source is skipped, not fatal.
 - **Image generation** — `image_prompt` is produced per curated trend but
   intentionally not stored on `trends`. Hand it off to your image API of
   choice and write the resulting URL to `trends.image_url`.

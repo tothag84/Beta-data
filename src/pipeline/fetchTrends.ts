@@ -16,7 +16,7 @@ import { z } from "zod";
 import { createAnthropicClient, ANTHROPIC_MODEL } from "../lib/anthropic.js";
 import { createServiceClient } from "../lib/supabase.js";
 import { env } from "../lib/env.js";
-import { fetchRawSignals } from "./mockSources.js";
+import { fetchRawSignals } from "./sources/index.js";
 import { getWinningTrends, buildFeedbackPromptSection } from "./optimizeCuration.js";
 import type { CuratedTrend, RawSignal } from "../types/index.js";
 
@@ -197,7 +197,10 @@ export async function runPipeline(): Promise<void> {
 
     // Step A
     const signals = await fetchRawSignals();
-    console.log(`[pipeline] ingested ${signals.length} raw signals`);
+    if (signals.length === 0) {
+        throw new Error("All ingest sources returned zero signals; aborting run.");
+    }
+    console.log(`[pipeline] total raw signals: ${signals.length}`);
 
     // Feedback loop
     const winners = await getWinningTrends().catch(err => {
