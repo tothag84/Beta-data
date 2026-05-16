@@ -29,20 +29,6 @@
     .accent { color: var(--accent); }
     #status { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
 
-    .config { border: 2px solid var(--accent); padding: 16px; margin-bottom: 24px; background: var(--card); }
-    .config h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase;
-                 letter-spacing: 0.1em; color: var(--accent); }
-    .config label { display: block; font-size: 10px; text-transform: uppercase;
-                    color: var(--muted); margin: 10px 0 4px; letter-spacing: 0.08em; }
-    .config input { width: 100%; background: var(--bg); color: var(--fg);
-                    border: 1px solid var(--line); padding: 10px;
-                    font-family: inherit; font-size: 12px; }
-    .config button { margin-top: 14px; width: 100%; background: var(--accent); color: var(--bg);
-                     border: 0; padding: 12px; font-family: inherit; font-weight: 700;
-                     text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; }
-    .config .clear { background: transparent; color: var(--muted);
-                     border: 1px solid var(--line); margin-top: 8px; }
-
     .stack { display: flex; flex-direction: column; gap: 16px; }
     .card { background: var(--card); border: 2px solid var(--fg); overflow: hidden;
             display: flex; flex-direction: column; }
@@ -75,64 +61,21 @@
       <span id="status">loading…</span>
     </header>
 
-    <section id="config" class="config" hidden>
-      <h2>Connect to Supabase</h2>
-      <label for="url">Supabase URL</label>
-      <input id="url" placeholder="https://xxxx.supabase.co" autocomplete="off" />
-      <label for="key">Anon key</label>
-      <input id="key" placeholder="eyJhbGciOi..." autocomplete="off" />
-      <button id="save">Save and load</button>
-      <button id="clear" class="clear" type="button">Clear</button>
-    </section>
-
     <section id="stack" class="stack"></section>
   </div>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+    // Hardcoded Supabase project credentials.
+    // Anon key is public by design — RLS policies in supabase/migrations/
+    // are what actually protect the data.
+    const SUPABASE_URL  = "https://jowcstmfahpqlugtcchu.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzl1NilsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJIZil6lmpvd2NzdG1mYWhwcWx1Z3RjY2h1liwicmVsZSI6ImFub24iLCJpYXQiOjE3Nzg5NDI4NDksImV4cCl6MjA5NDUxODg0OX0.BzmmAS7Ekh5FirWvwY0SMtzyiprdVATqsPMje48ul7g";
+
     const $      = sel => document.querySelector(sel);
     const stack  = $("#stack");
     const status = $("#status");
-    const cfg    = $("#config");
-
-    const URL_KEY = "bd_supabase_url";
-    const ANON_KEY = "bd_supabase_anon_key";
-
-    const getCreds = () => ({
-      url: localStorage.getItem(URL_KEY)  || "",
-      key: localStorage.getItem(ANON_KEY) || "",
-    });
-    const setCreds = (url, key) => {
-      localStorage.setItem(URL_KEY, url);
-      localStorage.setItem(ANON_KEY, key);
-    };
-    const clearCreds = () => {
-      localStorage.removeItem(URL_KEY);
-      localStorage.removeItem(ANON_KEY);
-    };
-
-    function showConfig() {
-      const { url, key } = getCreds();
-      $("#url").value = url;
-      $("#key").value = key;
-      cfg.hidden = false;
-    }
-
-    $("#save").addEventListener("click", () => {
-      const url = $("#url").value.trim();
-      const key = $("#key").value.trim();
-      if (!url || !key) return;
-      setCreds(url, key);
-      cfg.hidden = true;
-      load();
-    });
-    $("#clear").addEventListener("click", () => {
-      clearCreds();
-      stack.innerHTML = "";
-      status.textContent = "no creds";
-      showConfig();
-    });
 
     const escapeHtml = s => String(s ?? "").replace(/[&<>"']/g, c => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -162,15 +105,9 @@
     }
 
     async function load() {
-      const { url, key } = getCreds();
-      if (!url || !key) {
-        status.textContent = "no creds";
-        showConfig();
-        return;
-      }
       status.textContent = "loading…";
       try {
-        const supabase = createClient(url, key);
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const { data, error } = await supabase
           .from("trends")
           .select("id, title, description, image_url, source_url, velocity_score, category, created_at")
@@ -179,7 +116,7 @@
         if (error) throw error;
 
         if (!data || data.length === 0) {
-          stack.innerHTML = `<div class="empty">No trends yet — run <code>npm run pipeline:fetch</code>.</div>`;
+          stack.innerHTML = `<div class="empty">No trends yet — run <code>npm run pipeline:fetch</code>, or ask Claude to insert seed rows.</div>`;
           status.textContent = "empty";
           return;
         }
@@ -188,7 +125,6 @@
       } catch (err) {
         stack.innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
         status.textContent = "error";
-        showConfig();
       }
     }
 
