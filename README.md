@@ -18,10 +18,15 @@ src/
 ├── pipeline/
 │   ├── fetchTrends.ts      # daily cron entrypoint (Steps A → D)
 │   ├── optimizeCuration.ts # feedback-loop summary builder
-│   └── sources/            # Step A — one module per ingest source
-│       ├── github.ts       #   real: GitHub Search API (new repos by stars)
-│       ├── mock.ts         #   stubbed: Reddit / Discord / Google Trends
-│       └── index.ts        #   fan-out, allSettled, returns RawSignal[]
+│   ├── sources/            # Step A — one module per ingest source
+│   │   ├── github.ts       #   real: GitHub Search API (new repos by stars)
+│   │   ├── mock.ts         #   stubbed: Reddit / Discord / Google Trends
+│   │   └── index.ts        #   fan-out, allSettled, returns RawSignal[]
+│   └── images/             # Step C.5 — generate + host trend images
+│       ├── style.ts        #   "Minimal Tech Brutalist" style preamble
+│       ├── openai.ts       #   gpt-image-1 provider
+│       ├── storage.ts      #   uploads PNG bytes to Supabase Storage
+│       └── index.ts        #   generateAndStoreImage(id, subject) → URL
 └── types/
     └── index.ts
 supabase/
@@ -79,8 +84,25 @@ What `pipeline:fetch` does:
    7 days and appends a learned-preferences section to the system prompt.
 3. Asks Claude (`claude-opus-4-7` by default) to act as **Beta Data Head of
    Curation** and select exactly 5 hyper-niche, high-acceleration trends.
-   Output is returned via tool-use for reliable structured JSON.
-4. Validates with Zod and inserts the 5 rows into `public.trends`.
+   Output is returned via tool-use for reliable structured JSON. Claude is
+   instructed to describe SUBJECT MATTER ONLY in `image_prompt` (no styling
+   words) so the brand look stays uniform.
+4. For each trend: composes the final image prompt by prepending the
+   **Minimal Tech Brutalist** style preamble from
+   `src/pipeline/images/style.ts`, generates a 1024×1024 PNG with
+   `gpt-image-1`, uploads it to the public `trend-images` Supabase Storage
+   bucket, and captures the permanent public URL.
+5. Inserts the 5 rows into `public.trends` with `image_url` already
+   populated. If `OPENAI_API_KEY` is unset, or any single image generation
+   fails, `image_url` stays null for that row but the rest of the row still
+   ships.
+
+### Restyling the entire app
+
+Edit the single `STYLE_PREAMBLE` constant in
+`src/pipeline/images/style.ts` and re-run the pipeline. Every newly
+curated card will adopt the new look — existing cards keep their old
+images until you backfill.
 
 ## 5. Schedule the daily cron
 

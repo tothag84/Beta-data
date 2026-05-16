@@ -1,23 +1,27 @@
 /**
  * Daily AI-agent pipeline.
  *
- *   Step A — Ingest raw signals (mock sources today, real scrapers later).
- *   Step B — Claude as the "Beta Data Head of Curation": filter mainstream noise,
- *            select the top N hyper-niche, high-acceleration trends.
- *   Step C — Same Claude call returns structured JSON per trend (title,
- *            description, category, image_prompt, velocity_score).
- *   Step D — Upsert the curated rows into Supabase `trends`.
+ *   Step A   — Ingest raw signals (real GitHub + stubbed streams).
+ *   Step B   — Claude as the "Beta Data Head of Curation": filter mainstream
+ *              noise, select the top N hyper-niche, high-acceleration trends.
+ *   Step C   — Same Claude call returns structured JSON per trend (title,
+ *              description, category, image_prompt, velocity_score).
+ *   Step C.5 — Generate a uniform-style image for each trend, upload to
+ *              Supabase Storage, capture the permanent public URL.
+ *   Step D   — Insert the curated rows (incl. image_url) into Supabase.
  *
  * The Filter Agent's system prompt is dynamically augmented with the
  * feedback-loop summary from optimizeCuration.ts so the model keeps learning.
  */
 
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { createAnthropicClient, ANTHROPIC_MODEL } from "../lib/anthropic.js";
 import { createServiceClient } from "../lib/supabase.js";
 import { env } from "../lib/env.js";
 import { fetchRawSignals } from "./sources/index.js";
 import { getWinningTrends, buildFeedbackPromptSection } from "./optimizeCuration.js";
+import { generateAndStoreImage, STYLE_NAME } from "./images/index.js";
 import type { CuratedTrend, RawSignal } from "../types/index.js";
 
 // --- Structured-output schema ---------------------------------------------
@@ -63,7 +67,11 @@ const curationTool = {
                         },
                         image_prompt: {
                             type: "string",
-                            description: "Descriptive prompt for an image-generation API (Stable Diffusion / DALL·E style).",
+                            description:
+                                "SUBJECT MATTER ONLY for image generation: describe the physical object, " +
+                                "scene, or material in 1–2 sentences. Do NOT mention art style, lighting, " +
+                                "color palette, framing, or rendering medium — a brand-wide style is " +
+                                "applied downstream and your styling words would conflict with it.",
                         },
                         velocity_score: {
                             type: "integer",
@@ -107,8 +115,10 @@ function buildSystemPrompt(feedbackSection: string, count: number): string {
         "  6. Use these categories only: hardware, software, design, culture, biotech,",
         "     media, infra, other.",
         "  7. Velocity score is your acceleration estimate (0–100), not popularity.",
-        "  8. image_prompt should be vivid and concrete, suitable for a generative",
-        "     image API.",
+        `  8. image_prompt must describe SUBJECT MATTER ONLY (the physical thing or`,
+        `     scene). Do NOT mention art style, color, lighting, or framing — Beta`,
+        `     Data applies a uniform "${STYLE_NAME}" visual style downstream, and`,
+        `     your styling words would clash with it.`,
         "",
         "Return your selection by calling the `publish_curated_trends` tool. Do not",
         "reply with prose.",
@@ -163,22 +173,48 @@ async function curateWithClaude(
     return parsed.data.trends;
 }
 
+// --- Step C.5: generate images --------------------------------------------
+
+interface TrendWithMedia extends CuratedTrend {
+    id: string;
+    image_url: string | null;
+}
+
+async function attachImages(trends: CuratedTrend[]): Promise<TrendWithMedia[]> {
+    // Pre-generate UUIDs so the storage path is known before insert. Images
+    // are generated in parallel; a failure on any one trend leaves
+    // image_url null without aborting the run.
+    const withIds = trends.map(t => ({ ...t, id: randomUUID() }));
+
+    const results = await Promise.allSettled(
+        withIds.map(t => generateAndStoreImage(t.id, t.image_prompt)),
+    );
+
+    return withIds.map((t, i) => {
+        const r = results[i]!;
+        if (r.status === "fulfilled") {
+            return { ...t, image_url: r.value };
+        }
+        console.warn(`[image] failed for "${t.title}": ${r.reason}`);
+        return { ...t, image_url: null };
+    });
+}
+
 // --- Step D: persist -------------------------------------------------------
 
-async function insertTrends(trends: CuratedTrend[]): Promise<number> {
+async function insertTrends(trends: TrendWithMedia[]): Promise<number> {
     const supabase = createServiceClient();
 
-    // image_prompt is intentionally NOT stored on the trends table; it's a
-    // pipeline-internal artifact handed off to the image generator. The
-    // resulting image URL gets written to `image_url` once available. For
-    // the scaffold we leave image_url null.
+    // image_prompt is intentionally NOT stored on the trends table — it's a
+    // pipeline-internal artifact already consumed by Step C.5.
     const rows = trends.map(t => ({
+        id:             t.id,
         title:          t.title,
         description:    t.description,
         category:       t.category,
         velocity_score: t.velocity_score,
         source_url:     t.source_url ?? null,
-        image_url:      null,
+        image_url:      t.image_url,
     }));
 
     const { error, count } = await supabase
@@ -216,8 +252,13 @@ export async function runPipeline(): Promise<void> {
     const curated = await curateWithClaude(signals, feedbackSection, count);
     console.log(`[pipeline] Claude curated ${curated.length} trends`);
 
+    // Step C.5
+    const withMedia = await attachImages(curated);
+    const imageHits = withMedia.filter(t => t.image_url).length;
+    console.log(`[pipeline] generated images: ${imageHits}/${withMedia.length} (style: ${STYLE_NAME})`);
+
     // Step D
-    const inserted = await insertTrends(curated);
+    const inserted = await insertTrends(withMedia);
     console.log(`[pipeline] inserted ${inserted} rows into trends`);
 }
 
