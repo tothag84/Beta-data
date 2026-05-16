@@ -1,0 +1,29 @@
+{
+  "name": "beta-data-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend foundation and AI-agent data pipeline for Beta Data — a swipeable trend-spotting app.",
+  "type": "module",
+  "scripts": {
+    "pipeline:fetch": "tsx src/pipeline/fetchTrends.ts",
+    "pipeline:optimize": "tsx src/pipeline/optimizeCuration.ts",
+    "db:migrate": "supabase db push",
+    "db:reset": "supabase db reset",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
