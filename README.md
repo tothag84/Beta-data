@@ -20,11 +20,12 @@ src/
 │   ├── optimizeCuration.ts # feedback-loop summary builder
 │   ├── sources/            # Step A — one module per ingest source
 │   │   ├── github.ts       #   real: GitHub Search API (new repos by stars)
-│   │   ├── mock.ts         #   stubbed: Reddit / Discord / Google Trends
+│   │   ├── reddit.ts       #   real: rising posts from niche subs
+│   │   ├── mock.ts         #   stubbed: Discord / Google Trends
 │   │   └── index.ts        #   fan-out, allSettled, returns RawSignal[]
 │   └── images/             # Step C.5 — generate + host trend images
 │       ├── style.ts        #   "Minimal Tech Brutalist" style preamble
-│       ├── openai.ts       #   gpt-image-1 provider
+│       ├── google.ts       #   Imagen 4 provider (Gemini API)
 │       ├── storage.ts      #   uploads PNG bytes to Supabase Storage
 │       └── index.ts        #   generateAndStoreImage(id, subject) → URL
 └── types/
@@ -78,8 +79,10 @@ npm run pipeline:optimize
 ```
 
 What `pipeline:fetch` does:
-1. Pulls mock raw signals (GitHub, Reddit, Discord keyword spikes,
-   Google Trends rising queries) from `src/pipeline/mockSources.ts`.
+1. Pulls raw signals in parallel from **real GitHub** (Search API: new
+   repos by stars), **real Reddit** (rising posts across ~9 niche subs),
+   and stubbed Discord / Google-Trends streams. Each source is wrapped in
+   `Promise.allSettled`, so a single source failing never aborts the run.
 2. Queries the feedback loop for trends with ≥80% upvote rate over the last
    7 days and appends a learned-preferences section to the system prompt.
 3. Asks Claude (`claude-opus-4-7` by default) to act as **Beta Data Head of
@@ -89,11 +92,12 @@ What `pipeline:fetch` does:
    words) so the brand look stays uniform.
 4. For each trend: composes the final image prompt by prepending the
    **Minimal Tech Brutalist** style preamble from
-   `src/pipeline/images/style.ts`, generates a 1024×1024 PNG with
-   `gpt-image-1`, uploads it to the public `trend-images` Supabase Storage
-   bucket, and captures the permanent public URL.
+   `src/pipeline/images/style.ts`, generates a 1024×1024 PNG with Google
+   **Imagen 4** via the Gemini API, uploads it to the public
+   `trend-images` Supabase Storage bucket, and captures the permanent
+   public URL.
 5. Inserts the 5 rows into `public.trends` with `image_url` already
-   populated. If `OPENAI_API_KEY` is unset, or any single image generation
+   populated. If `GEMINI_API_KEY` is unset, or any single image generation
    fails, `image_url` stays null for that row but the rest of the row still
    ships.
 
@@ -131,6 +135,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 ```
 
 ## 6. Security notes

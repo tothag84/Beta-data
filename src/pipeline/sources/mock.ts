@@ -1,8 +1,13 @@
 /**
- * Mock ingest sources — Reddit niches, Discord keyword spikes, Google Trends
- * rising queries. These remain stubbed for now because each one requires
- * either auth, scraping, or a third-party API; swap them out one at a time
- * the same way `github.ts` was wired up.
+ * Stubbed ingest sources — Discord keyword spikes and Google Trends rising
+ * queries. These remain mocked because each requires either auth, scraping,
+ * or a paid third-party API; swap them out one at a time the same way
+ * `github.ts` and `reddit.ts` were wired up.
+ *
+ * Mock signals are useful even alongside real sources: they let the Filter
+ * Agent triangulate cross-source signal ("GitHub repo + Discord spike +
+ * Google Trends bump on the same topic") which is exactly what the
+ * curation system prompt rewards.
  */
 
 import type { RawSignal } from "../../types/index.js";
@@ -11,21 +16,6 @@ export async function fetchMockSignals(): Promise<RawSignal[]> {
     const now = new Date().toISOString();
 
     return [
-        {
-            source:      "reddit:r/MechanicalKeyboards",
-            title:       "I built a split keyboard out of e-waste PCBs",
-            snippet:     "Recycled board community is exploding — 9 vendors started shipping kits this month.",
-            url:         "https://reddit.com/r/MechanicalKeyboards/comments/xyz",
-            raw_score:   4_300,
-            captured_at: now,
-        },
-        {
-            source:      "reddit:r/MechanicalKeyboards",
-            title:       "Magnetic Hall-effect switches finally cheaper than MX",
-            snippet:     "Cherry MX drop-ins from $0.18/sw. Mainstream-adjacent — likely noise.",
-            raw_score:   2_100,
-            captured_at: now,
-        },
         {
             source:      "discord:hardware-underground",
             title:       "Keyword spike: 'risc-v laptops'",

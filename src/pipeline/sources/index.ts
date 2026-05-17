@@ -8,12 +8,14 @@
 
 import type { RawSignal } from "../../types/index.js";
 import { fetchGithubTrending } from "./github.js";
+import { fetchRedditRising } from "./reddit.js";
 import { fetchMockSignals } from "./mock.js";
 
 type Source = { name: string; fn: () => Promise<RawSignal[]> };
 
 const SOURCES: Source[] = [
     { name: "github",       fn: fetchGithubTrending },
+    { name: "reddit",       fn: fetchRedditRising },
     { name: "mock-streams", fn: fetchMockSignals },
 ];
 
