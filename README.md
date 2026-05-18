@@ -144,7 +144,7 @@ jobs:
   Use the anon key + auth flow on the device; this repo's pipeline is
   server-only.
 - RLS policies:
-  - `trends`: anyone authenticated can read; only service-role writes.
+  - `trends`: anyone (incl. anon) can read; only service-role writes.
   - `swipes`: each user can only read/insert/delete their own.
   - `users`: anyone authenticated can read profile rows; only the owner can
     update.
