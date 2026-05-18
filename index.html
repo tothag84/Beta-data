@@ -23,7 +23,7 @@
       line-height: 1.45;
     }
     .wrap { max-width: 480px; margin: 0 auto; padding: 32px 20px 80px; }
-    header { border-bottom: 2px solid var(--fg); padding-bottom: 12px; margin-bottom: 24px;
+    header { border-bottom: 2px solid var(--fg); padding-bottom: 12px; margin-bottom: 24px;h
             display: flex; align-items: baseline; justify-content: space-between; }
     header h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0; text-transform: uppercase; }
     .accent { color: var(--accent); }
@@ -64,8 +64,8 @@
     <section id="stack" class="stack"></section>section>
     </div>div>
   
-  <script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
   
   // Hardcoded Supabase project credentials.
   // Anon key is public by design — RLS policies in supabase/migrations/
@@ -107,7 +107,7 @@
   async function load() {
     status.textContent = "loading...";
     try {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       const { data, error } = await supabase
         .from("trends")
         .select("id, title, description, image_url, source_url, velocity_score, category, created_at")
