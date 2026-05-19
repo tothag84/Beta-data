@@ -29,6 +29,7 @@ import type { CuratedTrend, RawSignal } from "../types/index.js";
 const CuratedTrendSchema = z.object({
     title:          z.string().min(3).max(120),
     description:    z.string().min(10).max(400),
+    builder_angle:  z.string().min(10).max(280),
     category:       z.string().min(2).max(40),
     image_prompt:   z.string().min(10).max(500),
     velocity_score: z.number().int().min(0).max(100),
@@ -61,6 +62,16 @@ const curationTool = {
                             type: "string",
                             description: "Exactly two sentences explaining what it is and why it's accelerating.",
                         },
+                        builder_angle: {
+                            type: "string",
+                            description:
+                                "ONE sentence (≤280 chars) framing this trend as a market opportunity " +
+                                "for an indie maker or founder. Lead with the validating evidence " +
+                                "(e.g. '9 vendors shipped kits this month'), then name the concrete " +
+                                "gap or play (e.g. 'gap for a curated marketplace', 'opportunity for " +
+                                "a managed-service version', 'pre-validated demand for premium tooling'). " +
+                                "Tight, direct, no hedging. Do not start with 'You could' or 'This is'.",
+                        },
                         category: {
                             type: "string",
                             description: "One of: hardware, software, design, culture, biotech, media, infra, other.",
@@ -84,7 +95,7 @@ const curationTool = {
                             description: "Optional canonical URL from the raw signals.",
                         },
                     },
-                    required: ["title", "description", "category", "image_prompt", "velocity_score"],
+                    required: ["title", "description", "builder_angle", "category", "image_prompt", "velocity_score"],
                 },
             },
         },
@@ -112,10 +123,15 @@ function buildSystemPrompt(feedbackSection: string, count: number): string {
         "     repo gaining stars is stronger than one big number on one source.",
         "  4. Write titles as punchy headlines, ≤8 words, no marketing fluff.",
         "  5. Descriptions are exactly two sentences: what it is, why it's accelerating.",
-        "  6. Use these categories only: hardware, software, design, culture, biotech,",
+        "  6. builder_angle is ONE sentence framing the trend as a market opportunity",
+        "     for an indie maker or founder. Lead with concrete validation (vendor",
+        "     counts, launch counts, $$$ raised, GitHub-star velocity) and name the",
+        "     actionable gap. This is what makes the card go from interesting to",
+        "     'I could build this' — write it like the bullet of a deck slide.",
+        "  7. Use these categories only: hardware, software, design, culture, biotech,",
         "     media, infra, other.",
-        "  7. Velocity score is your acceleration estimate (0–100), not popularity.",
-        `  8. image_prompt must describe SUBJECT MATTER ONLY (the physical thing or`,
+        "  8. Velocity score is your acceleration estimate (0–100), not popularity.",
+        `  9. image_prompt must describe SUBJECT MATTER ONLY (the physical thing or`,
         `     scene). Do NOT mention art style, color, lighting, or framing — Beta`,
         `     Data applies a uniform "${STYLE_NAME}" visual style downstream, and`,
         `     your styling words would clash with it.`,
@@ -211,6 +227,7 @@ async function insertTrends(trends: TrendWithMedia[]): Promise<number> {
         id:             t.id,
         title:          t.title,
         description:    t.description,
+        builder_angle:  t.builder_angle,
         category:       t.category,
         velocity_score: t.velocity_score,
         source_url:     t.source_url ?? null,

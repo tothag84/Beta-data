@@ -1,138 +1,243 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Beta Data — Latest Trends</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Beta Data — 5 trends. Weekly. Before they hit Twitter.</title>
+  <meta name="description" content="A swipeable feed of hyper-niche, fast-accelerating trends — surfaced months before they go mainstream. Built for makers and founders." />
   <style>
-    /* Minimal Tech Brutalist — matches src/pipeline/images/style.ts */
+    /* Minimal Tech Brutalist — mirrors src/pipeline/images/style.ts */
     :root {
-      --bg: #0f0f0f;
-      --fg: #f4f4f0;
-      --muted: #8a8a82;
-      --line: #2a2a28;
+      --bg:     #0f0f0f;
+      --fg:     #f4f4f0;
+      --muted:  #8a8a82;
+      --line:   #2a2a28;
       --accent: #ff5b1f;
-      --card: #1a1a18;
+      --card:   #1a1a18;
     }
     * { box-sizing: border-box; }
     html, body {
       margin: 0; padding: 0;
-      background: var(--bg);
-      color: var(--fg);
+      background: var(--bg); color: var(--fg);
       font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       line-height: 1.45;
     }
     .wrap { max-width: 480px; margin: 0 auto; padding: 32px 20px 80px; }
-    header { border-bottom: 2px solid var(--fg); padding-bottom: 12px; margin-bottom: 24px;h
-            display: flex; align-items: baseline; justify-content: space-between; }
+
+    header { border-bottom: 2px solid var(--fg); padding-bottom: 12px; margin-bottom: 24px;
+             display: flex; align-items: baseline; justify-content: space-between; }
     header h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0; text-transform: uppercase; }
     .accent { color: var(--accent); }
     #status { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
 
+    .pitch { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
+    .pitch strong { color: var(--fg); }
+
     .stack { display: flex; flex-direction: column; gap: 16px; }
     .card { background: var(--card); border: 2px solid var(--fg); overflow: hidden;
-           display: flex; flex-direction: column; }
+            display: flex; flex-direction: column; }
     .card .image { aspect-ratio: 1 / 1; width: 100%; display: block; object-fit: cover;
-                  background: repeating-linear-gradient(45deg, #1f1f1d 0 8px, #181816 8px 16px); }
+                   background: repeating-linear-gradient(45deg, #1f1f1d 0 8px, #181816 8px 16px); }
     .card .image.placeholder { display: flex; align-items: center; justify-content: center;
-                              color: var(--muted); font-size: 11px;
-                              text-transform: uppercase; letter-spacing: 0.1em; }
+                               color: var(--muted); font-size: 11px;
+                               text-transform: uppercase; letter-spacing: 0.1em; }
     .card .body { padding: 16px; }
     .card .meta { display: flex; justify-content: space-between; align-items: center;
-                 font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-                 color: var(--muted); margin-bottom: 8px; }
+                  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+                  color: var(--muted); margin-bottom: 8px; }
     .card .cat { background: var(--accent); color: var(--bg); padding: 2px 6px; font-weight: 700; }
     .card h3 { margin: 0 0 8px; font-size: 18px; line-height: 1.2; letter-spacing: -0.01em; }
     .card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .card .angle { margin-top: 12px; padding: 8px 0 8px 12px;
+                   border-left: 3px solid var(--accent); color: var(--fg);
+                   font-size: 12px; line-height: 1.45; }
+    .card .angle b { display: block; color: var(--accent); font-size: 9px;
+                     letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;
+                     font-weight: 700; }
     .card .source { display: inline-block; margin-top: 12px; color: var(--accent);
-                   font-size: 11px; text-decoration: none;
-                   border-bottom: 1px solid var(--accent);
-                   text-transform: uppercase; letter-spacing: 0.08em; }
+                    font-size: 11px; text-decoration: none;
+                    border-bottom: 1px solid var(--accent);
+                    text-transform: uppercase; letter-spacing: 0.08em; }
 
     .empty, .error { border: 2px dashed var(--line); padding: 24px; text-align: center;
-                    color: var(--muted); font-size: 13px; }
+                     color: var(--muted); font-size: 13px; }
     .error { border-color: var(--accent); color: var(--accent); }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <header>
-        <h1>Beta<span class="accent">.</span>span>Data</h1>
-      <span id="status">loading...</span>span>
-      </header>
-    
-    <section id="stack" class="stack"></section>section>
-    </div>div>
-  
+
+    /* Subscribe block — the sticky hook */
+    .subscribe { border: 2px solid var(--fg); background: var(--card);
+                 padding: 20px; margin-top: 28px; }
+    .subscribe .kicker { font-size: 10px; letter-spacing: 0.18em;
+                         text-transform: uppercase; color: var(--accent);
+                         margin: 0 0 8px; }
+    .subscribe h2 { font-size: 20px; line-height: 1.2; letter-spacing: -0.01em;
+                    margin: 0 0 8px; }
+    .subscribe .lede { color: var(--muted); font-size: 12px; margin: 0 0 16px; }
+    .subscribe form { display: flex; gap: 0; border: 2px solid var(--fg); }
+    .subscribe input[type="email"] { flex: 1; padding: 10px 12px; background: var(--bg);
+                                     color: var(--fg); border: 0; outline: 0;
+                                     font: inherit; font-size: 13px;
+                                     min-width: 0; /* allow shrink on mobile */ }
+    .subscribe button { padding: 10px 14px; background: var(--accent); color: var(--bg);
+                        border: 0; border-left: 2px solid var(--fg); cursor: pointer;
+                        font: inherit; font-size: 11px; font-weight: 700;
+                        text-transform: uppercase; letter-spacing: 0.12em; }
+    .subscribe button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .subscribe .feedback { font-size: 11px; letter-spacing: 0.1em;
+                           text-transform: uppercase; color: var(--muted);
+                           margin-top: 10px; min-height: 14px; }
+    .subscribe .feedback.ok    { color: var(--fg); }
+    .subscribe .feedback.error { color: var(--accent); }
+    .subscribe .badge { display: block; padding: 14px; text-align: center;
+                        color: var(--fg); font-size: 11px; letter-spacing: 0.12em;
+                        text-transform: uppercase; border: 2px solid var(--accent); }
+
+    footer { color: var(--muted); font-size: 10px; text-transform: uppercase;
+             letter-spacing: 0.12em; text-align: center; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Beta<span class="accent">.</span>Data</h1>
+      <span id="status">loading…</span>
+    </header>
+
+    <p class="pitch">
+      Five hyper-niche trends a week — <strong>before they hit Twitter</strong>.
+      Each one comes with a builder angle: the gap a maker could fill while it's still early.
+    </p>
+
+    <section id="stack" class="stack"></section>
+
+    <section class="subscribe" id="subscribe">
+      <p class="kicker">→ Get the drop</p>
+      <h2>5 trends. Weekly. In your inbox.</h2>
+      <p class="lede">
+        Free. No filler. Unsubscribe in one click.
+      </p>
+      <form id="subscribe-form" autocomplete="email">
+        <input type="email" name="email" id="subscribe-email"
+               placeholder="you@yourstartup.dev" required />
+        <button type="submit" id="subscribe-btn">Subscribe</button>
+      </form>
+      <div class="feedback" id="subscribe-feedback"></div>
+    </section>
+
+    <footer>Beta Data · curated by an AI · all signal, no noise</footer>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
-  
-  // Hardcoded Supabase project credentials.
-  // Anon key is public by design — RLS policies in supabase/migrations/
-  // are what actually protect the data.
-  const SUPABASE_URL = "https://jowcstmfahpqlugtcchu.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_KzgAbB3qwu9-ZUJCzqY4Jg_XgJUaY0W";
-  
-  const $ = sel => document.querySelector(sel);
-  const stack = $("#stack");
-  const status = $("#status");
-  
-  const escapeHtml = s => String(s ?? "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[c]));
-  
-  function renderCard(t) {
-    const img = t.image_url
-      ? `<img class="image" src="${escapeHtml(t.image_url)}" alt="" loading="lazy" />`
-      : `<div class="image placeholder">no image</div>`;
-    const src = t.source_url
-      ? `<a class="source" href="${escapeHtml(t.source_url)}" target="_blank" rel="noopener">view source </a>`
-      : "";
-    return `
-    <article class="card">
-    ${img}
-    <div class="body">
-    <div class="meta">
-    <span class="cat">${escapeHtml(t.category)}</span>
-    <span>velocity ${escapeHtml(t.velocity_score)}</span>
-    </div>
-    <h3>${escapeHtml(t.title)}</h3>
-    <p>${escapeHtml(t.description)}</p>
-    ${src}
-    </div>
-    </article>
-    `;
-  }
-  
-  async function load() {
-    status.textContent = "loading...";
-    try {
-      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      const { data, error } = await supabase
-        .from("trends")
-        .select("id, title, description, image_url, source_url, velocity_score, category, created_at")
-        .order("created_at", { ascending: false })
-        .limit(5);
-      if (error) throw error;
-        
+    // Hardcoded Supabase project credentials.
+    // Anon key is public by design — RLS in supabase/migrations/ is the actual guard.
+    const SUPABASE_URL      = "https://jowcstmfahpqlugtcchu.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_KzgAbB3qwu9-ZUJCzqY4Jg_XgJUaY0W";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const $ = sel => document.querySelector(sel);
+    const stack    = $("#stack");
+    const status   = $("#status");
+    const form     = $("#subscribe-form");
+    const emailIn  = $("#subscribe-email");
+    const btn      = $("#subscribe-btn");
+    const feedback = $("#subscribe-feedback");
+    const subsBox  = $("#subscribe");
+
+    const escapeHtml = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+
+    function renderCard(t) {
+      const img = t.image_url
+        ? `<img class="image" src="${escapeHtml(t.image_url)}" alt="" loading="lazy" />`
+        : `<div class="image placeholder">no image</div>`;
+      const src = t.source_url
+        ? `<a class="source" href="${escapeHtml(t.source_url)}" target="_blank" rel="noopener">view source →</a>`
+        : "";
+      const angle = t.builder_angle
+        ? `<div class="angle"><b>Builder angle</b>${escapeHtml(t.builder_angle)}</div>`
+        : "";
+      return `
+        <article class="card">
+          ${img}
+          <div class="body">
+            <div class="meta">
+              <span class="cat">${escapeHtml(t.category)}</span>
+              <span>velocity ${escapeHtml(t.velocity_score)}</span>
+            </div>
+            <h3>${escapeHtml(t.title)}</h3>
+            <p>${escapeHtml(t.description)}</p>
+            ${angle}
+            ${src}
+          </div>
+        </article>
+      `;
+    }
+
+    async function loadTrends() {
+      status.textContent = "loading…";
+      try {
+        const { data, error } = await supabase
+          .from("trends")
+          .select("id, title, description, builder_angle, image_url, source_url, velocity_score, category, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5);
+        if (error) throw error;
+
         if (!data || data.length === 0) {
-          stack.innerHTML = `<div class="empty">No trends yet — run npm run pipeline:fetch to load data.</div>`;
+          stack.innerHTML = `<div class="empty">No trends yet — run <code>npm run pipeline:fetch</code> to load data.</div>`;
           status.textContent = "empty";
           return;
         }
-          stack.innerHTML = data.map(renderCard).join("");
-      status.textContent = `${data.length} loaded`;
-    } catch (err) {
-      stack.innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
-      status.textContent = "error";
+        stack.innerHTML = data.map(renderCard).join("");
+        status.textContent = `${data.length} loaded`;
+      } catch (err) {
+        stack.innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
+        status.textContent = "error";
+      }
     }
-  }
-  
-  load();
+
+    // --- Subscribe flow ---
+    function showAlreadySubscribed() {
+      subsBox.innerHTML = `<div class="badge">✓ You're on the list. Next drop incoming.</div>`;
+    }
+
+    if (localStorage.getItem("betadata_subscribed") === "1") {
+      showAlreadySubscribed();
+    }
+
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = emailIn.value.trim().toLowerCase();
+      if (!email) return;
+
+      btn.disabled = true;
+      feedback.textContent = "submitting…";
+      feedback.className = "feedback";
+
+      const { error } = await supabase
+        .from("subscribers")
+        .insert({ email, source: "landing" });
+
+      if (error) {
+        // 23505 = unique violation → already subscribed. Treat as success UX.
+        if (error.code === "23505") {
+          localStorage.setItem("betadata_subscribed", "1");
+          showAlreadySubscribed();
+          return;
+        }
+        feedback.textContent = error.message || "Something went wrong.";
+        feedback.className = "feedback error";
+        btn.disabled = false;
+        return;
+      }
+
+      localStorage.setItem("betadata_subscribed", "1");
+      showAlreadySubscribed();
+    });
+
+    loadTrends();
   </script>
-  </body>
-</html>html></h1>
-      </header>
-  </body>
-  </style></title>
-  </head>
+</body>
+</html>

@@ -2,6 +2,7 @@ export interface TrendRow {
     id: string;
     title: string;
     description: string;
+    builder_angle: string | null;
     image_url: string | null;
     source_url: string | null;
     velocity_score: number;
@@ -29,6 +30,7 @@ export interface RawSignal {
 export interface CuratedTrend {
     title: string;
     description: string;
+    builder_angle: string;
     category: string;
     image_prompt: string;
     velocity_score: number;

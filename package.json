@@ -7,6 +7,7 @@
   "scripts": {
     "pipeline:fetch": "tsx src/pipeline/fetchTrends.ts",
     "pipeline:optimize": "tsx src/pipeline/optimizeCuration.ts",
+    "digest:weekly": "tsx src/pipeline/digestWeekly.ts",
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
     "typecheck": "tsc --noEmit",
